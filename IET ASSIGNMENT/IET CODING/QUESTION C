@@ -1,0 +1,326 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# ------------------------------------
+# QUESTION C
+# LOCALLY WEIGHTED REGRESSION
+# ------------------------------------
+
+np.random.seed(20)
+
+rainfall = np.linspace(
+    300,
+    1800,
+    800
+)
+
+crop_yield = (
+
+    1.5
+
+    + 0.006
+    * rainfall
+
+    - 0.0000025
+    * rainfall ** 2
+
+    + np.random.normal(
+        0,
+        0.4,
+        800
+    )
+)
+
+data = pd.DataFrame({
+
+    "Rainfall":
+    rainfall,
+
+    "Yield":
+    crop_yield
+})
+
+print(data.head(10))
+
+data.to_csv(
+    "QUESTION_C_LWR_DATASET.csv",
+    index=False
+)
+
+# ------------------------------------
+# LWR FUNCTION
+# ------------------------------------
+
+def lwr_predict(
+    x_train,
+    y_train,
+    query,
+    tau=150
+):
+
+    # Gaussian kernel weights
+    weights = np.exp(
+
+        -(
+            (x_train - query)
+            ** 2
+        )
+
+        /
+
+        (
+            2 * tau ** 2
+        )
+    )
+
+    X = np.column_stack(
+
+        (
+            np.ones(
+                len(x_train)
+            ),
+
+            x_train
+        )
+    )
+
+    W = np.diag(
+        weights
+    )
+
+    theta = (
+
+        np.linalg.pinv(
+            X.T
+            @ W
+            @ X
+        )
+
+        @ X.T
+
+        @ W
+
+        @ y_train
+    )
+
+    prediction = (
+
+        theta[0]
+
+        +
+
+        theta[1]
+        * query
+    )
+
+    return prediction
+
+x = data[
+    "Rainfall"
+].values
+
+y = data[
+    "Yield"
+].values
+
+test_points = np.linspace(
+
+    x.min(),
+
+    x.max(),
+
+    100
+)
+
+lwr_predictions = []
+
+for point in test_points:
+
+    prediction = lwr_predict(
+
+        x,
+
+        y,
+
+        point,
+
+        tau=150
+    )
+
+    lwr_predictions.append(
+        prediction
+    )
+
+# ------------------------------------
+# LWR GRAPH
+# ------------------------------------
+
+plt.figure(
+    figsize=(8, 5)
+)
+
+plt.scatter(
+    x,
+    y,
+    alpha=0.3,
+    label="Actual Data"
+)
+
+plt.plot(
+    test_points,
+    lwr_predictions,
+    linewidth=3,
+    label="LWR Prediction"
+)
+
+plt.xlabel(
+    "Rainfall (mm)"
+)
+
+plt.ylabel(
+    "Crop Yield"
+)
+
+plt.title(
+    "Locally Weighted Regression"
+)
+
+plt.legend()
+plt.grid()
+
+plt.tight_layout()
+
+plt.savefig(
+    "results/question_c_lwr.png"
+)
+
+plt.show()
+
+# ------------------------------------
+# KNN FOR COMPARISON
+# ------------------------------------
+
+def simple_knn(
+    x_train,
+    y_train,
+    query,
+    k=20
+):
+
+    distances = np.abs(
+        x_train - query
+    )
+
+    indices = np.argsort(
+        distances
+    )[:k]
+
+    return np.mean(
+        y_train[indices]
+    )
+
+knn_predictions = []
+
+for point in test_points:
+
+    prediction = simple_knn(
+
+        x,
+
+        y,
+
+        point,
+
+        k=20
+    )
+
+    knn_predictions.append(
+        prediction
+    )
+
+# ------------------------------------
+# COMPARISON GRAPH
+# ------------------------------------
+
+plt.figure(
+    figsize=(8, 5)
+)
+
+plt.scatter(
+    x,
+    y,
+    alpha=0.2,
+    label="Actual Data"
+)
+
+plt.plot(
+    test_points,
+    lwr_predictions,
+    linewidth=3,
+    label="LWR"
+)
+
+plt.plot(
+    test_points,
+    knn_predictions,
+    linewidth=3,
+    label="k-NN"
+)
+
+plt.xlabel(
+    "Rainfall (mm)"
+)
+
+plt.ylabel(
+    "Crop Yield"
+)
+
+plt.title(
+    "Bias-Variance Comparison: LWR vs k-NN"
+)
+
+plt.legend()
+plt.grid()
+
+plt.tight_layout()
+
+plt.savefig(
+    "results/question_c_lwr_knn.png"
+)
+
+plt.show()
+
+actual = np.interp(
+    test_points,
+    x,
+    y
+)
+
+lwr_mse = np.mean(
+
+    (
+        actual
+        -
+        lwr_predictions
+    ) ** 2
+)
+
+knn_mse = np.mean(
+
+    (
+        actual
+        -
+        knn_predictions
+    ) ** 2
+)
+
+print(
+    "LWR MSE:",
+    round(lwr_mse, 4)
+)
+
+print(
+    "k-NN MSE:",
+    round(knn_mse, 4)
+)
