@@ -1,0 +1,418 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# ------------------------------------
+# QUESTION B
+# K-NN REGRESSION FROM SCRATCH
+# ------------------------------------
+
+np.random.seed(10)
+
+n = 10000
+
+data = pd.DataFrame({
+
+    "Rainfall":
+    np.random.uniform(
+        400, 1800, n
+    ),
+
+    "Temperature":
+    np.random.uniform(
+        18, 38, n
+    ),
+
+    "Humidity":
+    np.random.uniform(
+        40, 95, n
+    ),
+
+    "Soil_Moisture":
+    np.random.uniform(
+        20, 80, n
+    ),
+
+    "Nitrogen":
+    np.random.uniform(
+        20, 120, n
+    )
+})
+
+data["Yield"] = (
+
+    1
+
+    + 0.002 * data["Rainfall"]
+
+    - 0.05 * abs(
+        data["Temperature"] - 26
+    )
+
+    + 0.015
+    * data["Soil_Moisture"]
+
+    + 0.008
+    * data["Nitrogen"]
+
+    + np.random.normal(
+        0,
+        0.3,
+        n
+    )
+)
+
+print("Dataset:")
+print(data.head(10))
+
+print("\nShape:")
+print(data.shape)
+
+data.to_csv(
+    "QUESTION_B_KNN_DATASET.csv",
+    index=False
+)
+
+# ------------------------------------
+# INPUT AND OUTPUT
+# ------------------------------------
+
+features = [
+    "Rainfall",
+    "Temperature",
+    "Humidity",
+    "Soil_Moisture",
+    "Nitrogen"
+]
+
+X = data[features].values
+
+y = data["Yield"].values
+
+# Shuffle dataset
+indices = np.random.permutation(
+    len(X)
+)
+
+X = X[indices]
+y = y[indices]
+
+# ------------------------------------
+# TRAIN VALIDATION TEST SPLIT
+# ------------------------------------
+
+X_train = X[:7000]
+y_train = y[:7000]
+
+X_validation = X[7000:7500]
+y_validation = y[7000:7500]
+
+X_test = X[7500:8000]
+y_test = y[7500:8000]
+
+# ------------------------------------
+# STANDARDIZATION FROM SCRATCH
+# ------------------------------------
+
+mean = X_train.mean(axis=0)
+
+std = X_train.std(axis=0)
+
+X_train = (
+    X_train - mean
+) / std
+
+X_validation = (
+    X_validation - mean
+) / std
+
+X_test = (
+    X_test - mean
+) / std
+
+# ------------------------------------
+# EUCLIDEAN DISTANCE
+# ------------------------------------
+
+def euclidean_distance(a, b):
+
+    return np.sqrt(
+        np.sum(
+            (a - b) ** 2
+        )
+    )
+
+# ------------------------------------
+# MAHALANOBIS DISTANCE
+# ------------------------------------
+
+covariance_matrix = np.cov(
+    X_train,
+    rowvar=False
+)
+
+inverse_covariance = np.linalg.pinv(
+    covariance_matrix
+)
+
+def mahalanobis_distance(a, b):
+
+    difference = a - b
+
+    distance = np.sqrt(
+
+        difference.T
+
+        @ inverse_covariance
+
+        @ difference
+    )
+
+    return distance
+
+# ------------------------------------
+# K-NN REGRESSOR
+# ------------------------------------
+
+def knn_predict(
+    train_x,
+    train_y,
+    query,
+    k
+):
+
+    distances = []
+
+    for i in range(
+        len(train_x)
+    ):
+
+        distance = (
+            euclidean_distance(
+                train_x[i],
+                query
+            )
+        )
+
+        distances.append(
+            (
+                distance,
+                train_y[i]
+            )
+        )
+
+    distances.sort(
+        key=lambda value:
+        value[0]
+    )
+
+    nearest_neighbors = (
+        distances[:k]
+    )
+
+    prediction = np.mean(
+
+        [
+            value
+            for distance, value
+            in nearest_neighbors
+        ]
+    )
+
+    return prediction
+
+# ------------------------------------
+# MANUAL K VALIDATION
+# ------------------------------------
+
+k_values = [
+    1,
+    3,
+    5,
+    7,
+    9,
+    11
+]
+
+validation_mse = []
+
+for k in k_values:
+
+    predictions = []
+
+    for row in X_validation[:200]:
+
+        prediction = knn_predict(
+
+            X_train,
+            y_train,
+            row,
+            k
+        )
+
+        predictions.append(
+            prediction
+        )
+
+    mse = np.mean(
+
+        (
+            y_validation[:200]
+            -
+            np.array(predictions)
+        ) ** 2
+    )
+
+    validation_mse.append(
+        mse
+    )
+
+    print(
+        "k =",
+        k,
+        "MSE =",
+        round(mse, 4)
+    )
+
+# Best k
+best_k = k_values[
+    np.argmin(
+        validation_mse
+    )
+]
+
+print(
+    "\nBest value of k:",
+    best_k
+)
+
+# ------------------------------------
+# TEST PREDICTION
+# ------------------------------------
+
+test_predictions = []
+
+for row in X_test[:100]:
+
+    result = knn_predict(
+        X_train,
+        y_train,
+        row,
+        best_k
+    )
+
+    test_predictions.append(
+        result
+    )
+
+test_predictions = np.array(
+    test_predictions
+)
+
+mse = np.mean(
+
+    (
+        y_test[:100]
+        -
+        test_predictions
+    ) ** 2
+)
+
+rmse = np.sqrt(mse)
+
+print(
+    "\nTest MSE:",
+    round(mse, 4)
+)
+
+print(
+    "Test RMSE:",
+    round(rmse, 4)
+)
+
+# ------------------------------------
+# DISTANCE METRIC DEMONSTRATION
+# ------------------------------------
+
+print(
+    "\nEuclidean Distance:",
+    euclidean_distance(
+        X_train[0],
+        X_train[1]
+    )
+)
+
+print(
+    "Mahalanobis Distance:",
+    mahalanobis_distance(
+        X_train[0],
+        X_train[1]
+    )
+)
+
+# ------------------------------------
+# VALIDATION CURVE
+# ------------------------------------
+
+plt.figure(figsize=(7, 5))
+
+plt.plot(
+    k_values,
+    validation_mse,
+    marker="o"
+)
+
+plt.xlabel(
+    "Number of Neighbours (k)"
+)
+
+plt.ylabel(
+    "Validation MSE"
+)
+
+plt.title(
+    "Manual k-NN Validation Curve"
+)
+
+plt.grid()
+
+plt.tight_layout()
+
+plt.savefig(
+    "results/question_b_validation_curve.png"
+)
+
+plt.show()
+
+# ------------------------------------
+# ACTUAL VS PREDICTED
+# ------------------------------------
+
+plt.figure(figsize=(7, 5))
+
+plt.scatter(
+    y_test[:100],
+    test_predictions
+)
+
+plt.xlabel(
+    "Actual Yield"
+)
+
+plt.ylabel(
+    "Predicted Yield"
+)
+
+plt.title(
+    "k-NN Actual vs Predicted Yield"
+)
+
+plt.grid()
+
+plt.tight_layout()
+
+plt.savefig(
+    "results/question_b_actual_predicted.png"
+)
+
+plt.show()
