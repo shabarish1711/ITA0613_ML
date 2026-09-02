@@ -1,0 +1,328 @@
+import pandas as pd
+import itertools
+import matplotlib.pyplot as plt
+
+# ------------------------------------
+# QUESTION D
+# CANDIDATE ELIMINATION
+# ------------------------------------
+
+dataset = [
+
+    ["High", "Moderate",
+     "Fertile", "High",
+     "LowRisk"],
+
+    ["Medium", "Moderate",
+     "Fertile", "High",
+     "LowRisk"],
+
+    ["High", "Moderate",
+     "Fertile", "Medium",
+     "LowRisk"],
+
+    ["Medium", "Moderate",
+     "Fertile", "Medium",
+     "LowRisk"],
+
+    ["Low", "Hot",
+     "Poor", "Low",
+     "HighRisk"],
+
+    ["Low", "Hot",
+     "Average", "Low",
+     "HighRisk"],
+
+    ["Low", "Cold",
+     "Poor", "Medium",
+     "HighRisk"],
+
+    ["Medium", "Hot",
+     "Poor", "Low",
+     "HighRisk"],
+
+    ["High", "Hot",
+     "Average", "Medium",
+     "HighRisk"],
+
+    ["Low", "Moderate",
+     "Fertile", "Medium",
+     "HighRisk"],
+
+    ["High", "Moderate",
+     "Fertile", "High",
+     "LowRisk"],
+
+    ["Medium", "Moderate",
+     "Fertile", "High",
+     "LowRisk"]
+]
+
+columns = [
+
+    "Rainfall",
+
+    "Temperature",
+
+    "Soil",
+
+    "Humidity",
+
+    "Risk"
+]
+
+data = pd.DataFrame(
+    dataset,
+    columns=columns
+)
+
+print(
+    "Candidate Elimination Dataset"
+)
+
+print(data)
+
+data.to_csv(
+    "QUESTION_D_DATASET.csv",
+    index=False
+)
+
+features = columns[:-1]
+
+# ------------------------------------
+# FEATURE DOMAINS
+# ------------------------------------
+
+domains = {
+
+    feature:
+    list(
+        data[feature]
+        .unique()
+    )
+
+    for feature
+    in features
+}
+
+options = []
+
+for feature in features:
+
+    options.append(
+
+        domains[feature]
+        +
+        ["?"]
+    )
+
+# Generate hypothesis space
+hypotheses = list(
+
+    itertools.product(
+        *options
+    )
+)
+
+# ------------------------------------
+# CHECK HYPOTHESIS
+# ------------------------------------
+
+def satisfies(
+    hypothesis,
+    row
+):
+
+    for index, value in enumerate(
+        hypothesis
+    ):
+
+        if (
+            value != "?"
+            and
+            value != row[index]
+        ):
+
+            return False
+
+    return True
+
+# ------------------------------------
+# VERSION SPACE
+# ------------------------------------
+
+consistent_hypotheses = []
+
+for hypothesis in hypotheses:
+
+    valid = True
+
+    for _, row in data.iterrows():
+
+        x = row[
+            features
+        ].values
+
+        predicted_positive = (
+            satisfies(
+                hypothesis,
+                x
+            )
+        )
+
+        actual_positive = (
+
+            row["Risk"]
+
+            ==
+
+            "LowRisk"
+        )
+
+        if (
+            predicted_positive
+            !=
+            actual_positive
+        ):
+
+            valid = False
+            break
+
+    if valid:
+
+        consistent_hypotheses.append(
+            hypothesis
+        )
+
+print(
+    "\nNumber of Consistent Hypotheses:",
+    len(
+        consistent_hypotheses
+    )
+)
+
+print(
+    "\nVERSION SPACE"
+)
+
+for hypothesis in (
+    consistent_hypotheses
+):
+
+    print(hypothesis)
+
+# ------------------------------------
+# GENERICITY
+# ------------------------------------
+
+def generality(
+    hypothesis
+):
+
+    return sum(
+
+        1
+        for value
+        in hypothesis
+
+        if value == "?"
+    )
+
+if consistent_hypotheses:
+
+    minimum_generality = min(
+
+        generality(h)
+
+        for h
+        in consistent_hypotheses
+    )
+
+    maximum_generality = max(
+
+        generality(h)
+
+        for h
+        in consistent_hypotheses
+    )
+
+    S_boundary = [
+
+        h
+
+        for h
+        in consistent_hypotheses
+
+        if generality(h)
+        ==
+        minimum_generality
+    ]
+
+    G_boundary = [
+
+        h
+
+        for h
+        in consistent_hypotheses
+
+        if generality(h)
+        ==
+        maximum_generality
+    ]
+
+    print(
+        "\nS Boundary:"
+    )
+
+    for h in S_boundary:
+
+        print(h)
+
+    print(
+        "\nG Boundary:"
+    )
+
+    for h in G_boundary:
+
+        print(h)
+
+# ------------------------------------
+# GRAPH
+# ------------------------------------
+
+risk_counts = (
+    data["Risk"]
+    .value_counts()
+)
+
+plt.figure(
+    figsize=(6, 5)
+)
+
+risk_counts.plot(
+    kind="bar"
+)
+
+plt.xlabel(
+    "Yield Risk Band"
+)
+
+plt.ylabel(
+    "Number of Seasons"
+)
+
+plt.title(
+    "Distribution of Yield Risk Bands"
+)
+
+plt.grid(
+    axis="y"
+)
+
+plt.tight_layout()
+
+plt.savefig(
+    "results/question_d_risk_distribution.png"
+)
+
+plt.show()
