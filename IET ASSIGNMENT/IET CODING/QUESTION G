@@ -1,0 +1,333 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# ------------------------------------
+# QUESTION G
+# LIMITATIONS, UNCERTAINTY AND FAIRNESS
+# ------------------------------------
+
+np.random.seed(90)
+
+n = 3000
+
+data = pd.DataFrame({
+
+    "Region":
+    np.random.choice(
+        [
+            "Urban",
+            "Rural",
+            "Remote"
+        ],
+        n
+    ),
+
+    "Farm_Size":
+    np.random.choice(
+        [
+            "Small",
+            "Medium",
+            "Large"
+        ],
+        n
+    ),
+
+    "Rainfall":
+    np.random.uniform(
+        400,
+        1600,
+        n
+    ),
+
+    "Temperature":
+    np.random.uniform(
+        20,
+        38,
+        n
+    )
+})
+
+# ------------------------------------
+# ACTUAL YIELD
+# ------------------------------------
+
+data["Actual_Yield"] = (
+
+    2
+
+    + 0.002
+    * data["Rainfall"]
+
+    - 0.04
+    * abs(
+        data["Temperature"]
+        -
+        27
+    )
+
+    + np.random.normal(
+        0,
+        0.3,
+        n
+    )
+)
+
+# ------------------------------------
+# PREDICTED YIELD
+# ------------------------------------
+
+data["Predicted_Yield"] = (
+
+    data["Actual_Yield"]
+
+    + np.random.normal(
+        0,
+        0.35,
+        n
+    )
+)
+
+# Simulated systematic bias
+data.loc[
+
+    data["Region"]
+    ==
+    "Remote",
+
+    "Predicted_Yield"
+
+] -= 0.3
+
+data.loc[
+
+    data["Farm_Size"]
+    ==
+    "Small",
+
+    "Predicted_Yield"
+
+] -= 0.2
+
+# ------------------------------------
+# PREDICTION ERROR
+# ------------------------------------
+
+data["Error"] = abs(
+
+    data["Actual_Yield"]
+
+    -
+
+    data["Predicted_Yield"]
+)
+
+print(
+    "Dataset:"
+)
+
+print(
+    data.head(10)
+)
+
+data.to_csv(
+    "QUESTION_G_DATASET.csv",
+    index=False
+)
+
+# ------------------------------------
+# OVERALL ERROR
+# ------------------------------------
+
+overall_mae = (
+    data["Error"].mean()
+)
+
+residual = (
+
+    data["Actual_Yield"]
+
+    -
+
+    data["Predicted_Yield"]
+)
+
+uncertainty = (
+    residual.std()
+)
+
+print(
+    "\nOverall MAE:",
+    round(
+        overall_mae,
+        4
+    )
+)
+
+print(
+    "Prediction Uncertainty:",
+    round(
+        uncertainty,
+        4
+    )
+)
+
+# ------------------------------------
+# REGION FAIRNESS
+# ------------------------------------
+
+region_error = (
+
+    data.groupby(
+        "Region"
+    )["Error"]
+
+    .mean()
+)
+
+print(
+    "\nMAE by Region:"
+)
+
+print(
+    region_error
+)
+
+# ------------------------------------
+# FARM SIZE FAIRNESS
+# ------------------------------------
+
+farm_error = (
+
+    data.groupby(
+        "Farm_Size"
+    )["Error"]
+
+    .mean()
+)
+
+print(
+    "\nMAE by Farm Size:"
+)
+
+print(
+    farm_error
+)
+
+# ------------------------------------
+# GRAPH 1
+# REGION FAIRNESS
+# ------------------------------------
+
+plt.figure(
+    figsize=(7, 5)
+)
+
+region_error.plot(
+    kind="bar"
+)
+
+plt.xlabel(
+    "Region"
+)
+
+plt.ylabel(
+    "Mean Absolute Error"
+)
+
+plt.title(
+    "Prediction Fairness by Region"
+)
+
+plt.grid(
+    axis="y"
+)
+
+plt.tight_layout()
+
+plt.savefig(
+    "results/question_g_region_fairness.png"
+)
+
+plt.show()
+
+# ------------------------------------
+# GRAPH 2
+# FARM SIZE FAIRNESS
+# ------------------------------------
+
+plt.figure(
+    figsize=(7, 5)
+)
+
+farm_error.plot(
+    kind="bar"
+)
+
+plt.xlabel(
+    "Farm Size"
+)
+
+plt.ylabel(
+    "Mean Absolute Error"
+)
+
+plt.title(
+    "Prediction Fairness by Farm Size"
+)
+
+plt.grid(
+    axis="y"
+)
+
+plt.tight_layout()
+
+plt.savefig(
+    "results/question_g_farm_fairness.png"
+)
+
+plt.show()
+
+# ------------------------------------
+# GRAPH 3
+# ACTUAL VS PREDICTED
+# ------------------------------------
+
+plt.figure(
+    figsize=(7, 5)
+)
+
+plt.scatter(
+
+    data[
+        "Actual_Yield"
+    ][:500],
+
+    data[
+        "Predicted_Yield"
+    ][:500],
+
+    alpha=0.5
+)
+
+plt.xlabel(
+    "Actual Yield"
+)
+
+plt.ylabel(
+    "Predicted Yield"
+)
+
+plt.title(
+    "Actual vs Predicted Crop Yield"
+)
+
+plt.grid()
+
+plt.tight_layout()
+
+plt.savefig(
+    "results/question_g_actual_predicted.png"
+)
+
+plt.show()
