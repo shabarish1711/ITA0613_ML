@@ -1,0 +1,542 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import time
+
+# ------------------------------------
+# QUESTION E
+# SCALABILITY ANALYSIS
+# ------------------------------------
+
+np.random.seed(100)
+
+dataset_sizes = [
+
+    1000,
+
+    10000,
+
+    100000,
+
+    1000000
+]
+
+knn_times = []
+
+lwr_times = []
+
+memory_values = []
+
+for n in dataset_sizes:
+
+    print(
+        "\nTesting Dataset Size:",
+        n
+    )
+
+    # Generate benchmark data
+    X = np.random.random(
+        (n, 5)
+    )
+
+    y = (
+
+        2 * X[:, 0]
+
+        + X[:, 1]
+
+        - X[:, 2]
+
+        + np.random.normal(
+            0,
+            0.05,
+            n
+        )
+    )
+
+    query = np.random.random(
+        5
+    )
+
+    # --------------------------------
+    # KNN EXECUTION TIME
+    # --------------------------------
+
+    start_time = (
+        time.perf_counter()
+    )
+
+    distances = np.sqrt(
+
+        np.sum(
+
+            (
+                X - query
+            ) ** 2,
+
+            axis=1
+        )
+    )
+
+    k = 5
+
+    nearest = np.argpartition(
+
+        distances,
+
+        k
+    )[:k]
+
+    knn_prediction = np.mean(
+
+        y[nearest]
+    )
+
+    knn_time = (
+
+        time.perf_counter()
+
+        -
+
+        start_time
+    )
+
+    # --------------------------------
+    # LWR EXECUTION TIME
+    # --------------------------------
+
+    start_time = (
+        time.perf_counter()
+    )
+
+    weights = np.exp(
+
+        -
+
+        np.sum(
+
+            (
+                X - query
+            ) ** 2,
+
+            axis=1
+        )
+
+        /
+
+        0.2
+    )
+
+    lwr_prediction = (
+
+        np.sum(
+            weights * y
+        )
+
+        /
+
+        (
+            np.sum(weights)
+            +
+            1e-10
+        )
+    )
+
+    lwr_time = (
+
+        time.perf_counter()
+
+        -
+
+        start_time
+    )
+
+    memory_mb = (
+
+        X.nbytes
+
+        +
+
+        y.nbytes
+
+    ) / (1024 ** 2)
+
+    knn_times.append(
+        knn_time
+    )
+
+    lwr_times.append(
+        lwr_time
+    )
+
+    memory_values.append(
+        memory_mb
+    )
+
+    print(
+        "k-NN Time:",
+        round(
+            knn_time,
+            6
+        ),
+        "seconds"
+    )
+
+    print(
+        "LWR Time:",
+        round(
+            lwr_time,
+            6
+        ),
+        "seconds"
+    )
+
+    print(
+        "Memory Usage:",
+        round(
+            memory_mb,
+            2
+        ),
+        "MB"
+    )
+
+# ------------------------------------
+# RESULT TABLE
+# ------------------------------------
+
+results = pd.DataFrame({
+
+    "Records":
+    dataset_sizes,
+
+    "KNN_Time":
+    knn_times,
+
+    "LWR_Time":
+    lwr_times,
+
+    "Memory_MB":
+    memory_values
+})
+
+print(
+    "\nScalability Results"
+)
+
+print(results)
+
+results.to_csv(
+    "results/question_e_scalability.csv",
+    index=False
+)
+
+# ------------------------------------
+# EXECUTION TIME GRAPH
+# ------------------------------------
+
+plt.figure(
+    figsize=(8, 5)
+)
+
+plt.plot(
+
+    dataset_sizes,
+
+    knn_times,
+
+    marker="o",
+
+    label="k-NN"
+)
+
+plt.plot(
+
+    dataset_sizes,
+
+    lwr_times,
+
+    marker="o",
+
+    label="LWR"
+)
+
+plt.xscale(
+    "log"
+)
+
+plt.xlabel(
+    "Number of Records"
+)
+
+plt.ylabel(
+    "Execution Time (seconds)"
+)
+
+plt.title(
+    "Scalability of k-NN and LWR"
+)
+
+plt.legend()
+
+plt.grid()
+
+plt.tight_layout()
+
+plt.savefig(
+    "results/question_e_execution_time.png"
+)
+
+plt.show()
+
+# ------------------------------------
+# MEMORY GRAPH
+# ------------------------------------
+
+plt.figure(
+    figsize=(8, 5)
+)
+
+plt.plot(
+
+    dataset_sizes,
+
+    memory_values,
+
+    marker="o"
+)
+
+plt.xscale(
+    "log"
+)
+
+plt.xlabel(
+    "Number of Records"
+)
+
+plt.ylabel(
+    "Memory Usage (MB)"
+)
+
+plt.title(
+    "Memory Requirement as Dataset Scales"
+)
+
+plt.grid()
+
+plt.tight_layout()
+
+plt.savefig(
+    "results/question_e_memory.png"
+)
+
+plt.show()
+
+# ====================================
+# INDEXING / APPROXIMATION PROTOTYPE
+# ====================================
+
+np.random.seed(20)
+
+n = 200000
+
+X = np.random.random(
+    (n, 2)
+)
+
+y = (
+
+    3 * X[:, 0]
+
+    +
+
+    2 * X[:, 1]
+)
+
+query = np.array(
+    [0.55, 0.60]
+)
+
+# ------------------------------------
+# BRUTE FORCE
+# ------------------------------------
+
+start = time.perf_counter()
+
+distances = np.sqrt(
+
+    np.sum(
+
+        (
+            X - query
+        ) ** 2,
+
+        axis=1
+    )
+)
+
+nearest = np.argpartition(
+
+    distances,
+
+    5
+)[:5]
+
+normal_prediction = np.mean(
+    y[nearest]
+)
+
+normal_time = (
+
+    time.perf_counter()
+
+    -
+
+    start
+)
+
+# ------------------------------------
+# GRID INDEX
+# ------------------------------------
+
+bin_size = 0.1
+
+grid_x = (
+
+    X[:, 0]
+
+    /
+
+    bin_size
+).astype(int)
+
+grid_y = (
+
+    X[:, 1]
+
+    /
+
+    bin_size
+).astype(int)
+
+query_x = int(
+
+    query[0]
+
+    /
+
+    bin_size
+)
+
+query_y = int(
+
+    query[1]
+
+    /
+
+    bin_size
+)
+
+start = time.perf_counter()
+
+candidate_mask = (
+
+    (
+        abs(
+            grid_x - query_x
+        )
+        <= 1
+    )
+
+    &
+
+    (
+        abs(
+            grid_y - query_y
+        )
+        <= 1
+    )
+)
+
+candidates = X[
+    candidate_mask
+]
+
+candidate_y = y[
+    candidate_mask
+]
+
+candidate_distances = np.sqrt(
+
+    np.sum(
+
+        (
+            candidates - query
+        ) ** 2,
+
+        axis=1
+    )
+)
+
+nearest = np.argpartition(
+
+    candidate_distances,
+
+    5
+)[:5]
+
+indexed_prediction = np.mean(
+
+    candidate_y[
+        nearest
+    ]
+)
+
+indexed_time = (
+
+    time.perf_counter()
+
+    -
+
+    start
+)
+
+print(
+    "\nINDEXING RESULTS"
+)
+
+print(
+    "Total Records:",
+    len(X)
+)
+
+print(
+    "Candidate Records:",
+    len(candidates)
+)
+
+print(
+    "Brute Force Time:",
+    normal_time
+)
+
+print(
+    "Indexed Search Time:",
+    indexed_time
+)
+
+print(
+    "Brute Force Prediction:",
+    normal_prediction
+)
+
+print(
+    "Indexed Prediction:",
+    indexed_prediction
+)
+
+print(
+    "Speed Improvement:",
+    normal_time
+    /
+    indexed_time
+)
