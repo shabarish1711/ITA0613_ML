@@ -1,0 +1,319 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# ------------------------------------
+# QUESTION F
+# FIVE VISUALIZATIONS
+# ------------------------------------
+
+np.random.seed(55)
+
+n = 4000
+
+data = pd.DataFrame({
+
+    "Year":
+    np.random.choice(
+        range(
+            2015,
+            2026
+        ),
+        n
+    ),
+
+    "Crop":
+    np.random.choice(
+        [
+            "Rice",
+            "Wheat",
+            "Maize",
+            "Cotton",
+            "Sugarcane"
+        ],
+        n
+    ),
+
+    "Region":
+    np.random.choice(
+        [
+            "North",
+            "South",
+            "East",
+            "West"
+        ],
+        n
+    ),
+
+    "Rainfall":
+    np.random.uniform(
+        400,
+        1800,
+        n
+    ),
+
+    "Temperature":
+    np.random.uniform(
+        18,
+        38,
+        n
+    ),
+
+    "Humidity":
+    np.random.uniform(
+        40,
+        95,
+        n
+    )
+})
+
+data["Yield"] = (
+
+    2
+
+    + 0.002
+    * data["Rainfall"]
+
+    - 0.05
+    * abs(
+        data["Temperature"]
+        -
+        26
+    )
+
+    + np.random.normal(
+        0,
+        0.4,
+        n
+    )
+)
+
+print(data.head())
+
+data.to_csv(
+    "QUESTION_F_DATASET.csv",
+    index=False
+)
+
+# ------------------------------------
+# GRAPH 1
+# RAINFALL VS YIELD
+# ------------------------------------
+
+plt.figure(
+    figsize=(7, 5)
+)
+
+plt.scatter(
+
+    data["Rainfall"],
+
+    data["Yield"],
+
+    alpha=0.3
+)
+
+plt.xlabel(
+    "Rainfall (mm)"
+)
+
+plt.ylabel(
+    "Crop Yield"
+)
+
+plt.title(
+    "Rainfall vs Crop Yield"
+)
+
+plt.grid()
+
+plt.tight_layout()
+
+plt.savefig(
+    "results/question_f_graph1_rainfall.png"
+)
+
+plt.show()
+
+# ------------------------------------
+# GRAPH 2
+# TEMPERATURE VS YIELD
+# ------------------------------------
+
+plt.figure(
+    figsize=(7, 5)
+)
+
+plt.scatter(
+
+    data["Temperature"],
+
+    data["Yield"],
+
+    alpha=0.3
+)
+
+plt.xlabel(
+    "Temperature (°C)"
+)
+
+plt.ylabel(
+    "Crop Yield"
+)
+
+plt.title(
+    "Temperature vs Crop Yield"
+)
+
+plt.grid()
+
+plt.tight_layout()
+
+plt.savefig(
+    "results/question_f_graph2_temperature.png"
+)
+
+plt.show()
+
+# ------------------------------------
+# GRAPH 3
+# CROP WISE YIELD
+# ------------------------------------
+
+crop_yield = (
+
+    data.groupby(
+        "Crop"
+    )["Yield"]
+
+    .mean()
+
+    .sort_values()
+)
+
+plt.figure(
+    figsize=(7, 5)
+)
+
+crop_yield.plot(
+    kind="bar"
+)
+
+plt.xlabel(
+    "Crop"
+)
+
+plt.ylabel(
+    "Average Yield"
+)
+
+plt.title(
+    "Average Yield of Different Crops"
+)
+
+plt.grid(
+    axis="y"
+)
+
+plt.tight_layout()
+
+plt.savefig(
+    "results/question_f_graph3_crop.png"
+)
+
+plt.show()
+
+# ------------------------------------
+# GRAPH 4
+# YEARLY YIELD TREND
+# ------------------------------------
+
+yearly_yield = (
+
+    data.groupby(
+        "Year"
+    )["Yield"]
+
+    .mean()
+)
+
+plt.figure(
+    figsize=(8, 5)
+)
+
+plt.plot(
+
+    yearly_yield.index,
+
+    yearly_yield.values,
+
+    marker="o"
+)
+
+plt.xlabel(
+    "Year"
+)
+
+plt.ylabel(
+    "Average Yield"
+)
+
+plt.title(
+    "Crop Yield Trend Over Time"
+)
+
+plt.grid()
+
+plt.tight_layout()
+
+plt.savefig(
+    "results/question_f_graph4_year.png"
+)
+
+plt.show()
+
+# ------------------------------------
+# GRAPH 5
+# REGIONAL YIELD
+# ------------------------------------
+
+regional_yield = (
+
+    data.groupby(
+        "Region"
+    )["Yield"]
+
+    .mean()
+)
+
+plt.figure(
+    figsize=(7, 5)
+)
+
+regional_yield.plot(
+    kind="bar"
+)
+
+plt.xlabel(
+    "Region"
+)
+
+plt.ylabel(
+    "Average Yield"
+)
+
+plt.title(
+    "Regional Variation in Crop Yield"
+)
+
+plt.grid(
+    axis="y"
+)
+
+plt.tight_layout()
+
+plt.savefig(
+    "results/question_f_graph5_region.png"
+)
+
+plt.show()
